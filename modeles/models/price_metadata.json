@@ -1,0 +1,50 @@
+{
+  "categorical_maps": {},
+  "device": "mps",
+  "feature_columns": [
+    "market_id",
+    "latitude",
+    "longitude",
+    "commodity_id",
+    "year",
+    "month",
+    "day_of_year"
+  ],
+  "framework": "pytorch",
+  "metrics": {
+    "mae": 2.1803277934784426,
+    "mse_scaled": 0.8853513383662984,
+    "rmse": 10.143398901966542
+  },
+  "source": "huggingface_disk:/Users/slimane/hackathon-chain-and-brain/modeles/data/market/raw/wfp_malawi",
+  "target_clip_quantiles": [
+    0.01,
+    0.995
+  ],
+  "target_clip_values": [
+    0.039,
+    95.17
+  ],
+  "target_column": "usdprice",
+  "target_transform": "log1p_then_standardize",
+  "x_mean": [
+    1605.8076171875,
+    -14.275269508361816,
+    34.43179702758789,
+    449.5169982910156,
+    2020.407470703125,
+    6.305920600891113,
+    175.83346557617188
+  ],
+  "x_std": [
+    1417.3271484375,
+    2.050637722015381,
+    2.6140613555908203,
+    498.6734924316406,
+    5.4422454833984375,
+    3.657693386077881,
+    111.38516998291016
+  ],
+  "y_mean": 0.6792696118354797,
+  "y_std": 0.7433090806007385
+}

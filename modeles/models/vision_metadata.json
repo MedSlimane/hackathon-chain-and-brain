@@ -1,0 +1,42 @@
+{
+  "classes": [
+    "grass_dominant",
+    "clover_dominant",
+    "weed_dominant"
+  ],
+  "classifier_metrics": {
+    "accuracy": 0.6792452830188679,
+    "loss": 0.5862624937633298
+  },
+  "device": "mps",
+  "framework": "pytorch",
+  "image_mean": [
+    0.48500001430511475,
+    0.4560000002384186,
+    0.4059999883174896
+  ],
+  "image_size": 128,
+  "image_std": [
+    0.2290000021457672,
+    0.2240000069141388,
+    0.22499999403953552
+  ],
+  "quality_metrics": {
+    "dry_matter_fraction_mae": 0.02546939253807068,
+    "dry_total_mae": 15.297168731689453,
+    "loss": 0.24495589676892982
+  },
+  "quality_target_mean": [
+    65.20835876464844,
+    0.18470679223537445
+  ],
+  "quality_target_std": [
+    32.49140548706055,
+    0.04067061468958855
+  ],
+  "quality_targets": [
+    "dry_total",
+    "dry_matter_fraction"
+  ],
+  "source_dataset": "GrassClover biomass_data"
+}

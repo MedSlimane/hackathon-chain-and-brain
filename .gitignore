@@ -24,4 +24,5 @@ pnpm-debug.log*
 
 modeles/venv/
 
-/modeles/
+/modeles/__pycache__/
+/modeles/data/

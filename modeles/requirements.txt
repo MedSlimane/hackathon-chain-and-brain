@@ -1,0 +1,28 @@
+# Dépendances pour l'entraînement des modèles AgriConnect Smart
+
+# Core ML et Data
+numpy
+pandas
+scikit-learn
+xgboost
+joblib
+
+# Deep Learning GPU (Apple Silicon via PyTorch MPS, CUDA when available)
+torch
+torchvision
+transformers
+pillow
+
+# Téléchargement de données
+datasets
+kaggle
+requests
+huggingface_hub
+
+# API inference
+fastapi
+uvicorn[standard]
+python-multipart
+
+# API Supabase (pour plus tard dans le backend)
+supabase
