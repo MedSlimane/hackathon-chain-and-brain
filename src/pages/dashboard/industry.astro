@@ -1,0 +1,13 @@
+---
+import IndustryDashboard from "@/components/dashboards/IndustryDashboard";
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+import { demoListings, demoProfiles, demoTransactions } from "@/lib/sampleData";
+
+const industry = demoProfiles.find((profile) => profile.role === "industry")!;
+const listings = demoListings.filter((listing) => listing.status === "available");
+const transactions = demoTransactions.filter((transaction) => transaction.industry_id === industry.id);
+---
+
+<DashboardLayout title="Industry dashboard" subtitle="Source biomass, create purchase transactions, and track carbon impact." role="industry">
+  <IndustryDashboard industryId={industry.id} listings={listings} transactions={transactions} client:load />
+</DashboardLayout>

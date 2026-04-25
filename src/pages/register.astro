@@ -1,0 +1,10 @@
+---
+import RegisterForm from "@/components/auth/RegisterForm";
+import MainLayout from "@/layouts/MainLayout.astro";
+---
+
+<MainLayout title="Register | AgriConnect Smart">
+  <main class="px-4 py-12 sm:px-6 lg:px-8">
+    <RegisterForm client:load />
+  </main>
+</MainLayout>

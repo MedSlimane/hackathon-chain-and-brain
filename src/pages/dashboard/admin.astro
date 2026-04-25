@@ -1,0 +1,17 @@
+---
+import AdminDashboard from "@/components/dashboards/AdminDashboard";
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+import { demoAiPredictions, demoBlockchainRecords, demoListings, demoProfiles, demoSecurityLogs, demoTransactions } from "@/lib/sampleData";
+---
+
+<DashboardLayout title="Admin and security dashboard" subtitle="Review platform activity, anomaly logs, blockchain records, and AI prediction history." role="admin">
+  <AdminDashboard
+    profiles={demoProfiles}
+    listings={demoListings}
+    transactions={demoTransactions}
+    securityLogs={demoSecurityLogs}
+    blockchainRecords={demoBlockchainRecords}
+    predictions={demoAiPredictions}
+    client:load
+  />
+</DashboardLayout>

@@ -1,0 +1,10 @@
+---
+import LoginForm from "@/components/auth/LoginForm";
+import MainLayout from "@/layouts/MainLayout.astro";
+---
+
+<MainLayout title="Login | AgriConnect Smart">
+  <main class="px-4 py-12 sm:px-6 lg:px-8">
+    <LoginForm client:load />
+  </main>
+</MainLayout>

@@ -1,0 +1,18 @@
+---
+import MarketplaceView from "@/components/marketplace/MarketplaceView";
+import MainLayout from "@/layouts/MainLayout.astro";
+import { demoListings } from "@/lib/sampleData";
+
+const listings = demoListings.filter((listing) => listing.status === "available");
+---
+
+<MainLayout title="Marketplace | AgriConnect Smart">
+  <main class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <div class="mb-8">
+      <p class="text-sm font-semibold uppercase tracking-wide text-emerald-700">Biomass marketplace</p>
+      <h1 class="mt-2 text-3xl font-semibold text-slate-950">Available agricultural waste</h1>
+      <p class="mt-2 max-w-2xl text-slate-600">Search traceable biomass lots with AI price estimates, carbon impact, and regional context.</p>
+    </div>
+    <MarketplaceView listings={listings} client:load />
+  </main>
+</MainLayout>
