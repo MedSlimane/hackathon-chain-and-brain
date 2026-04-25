@@ -7,6 +7,7 @@ import { logSecurityEvent, detectListingAnomaly } from "@/lib/security";
 import { hasSupabaseConfig } from "@/lib/supabaseClient";
 import { uploadBiomassImage } from "@/lib/storage";
 import { listingSchema, validateImageFile } from "@/lib/validators";
+import { modelPriceToTndPerKg, predictLotWithModelApi, visualClassToMarketplaceType, type ModelLotPrediction } from "@/lib/modelApi";
 
 const biomassTypes = ["Olive residues", "Wheat straw", "Date palm waste", "Almond shells", "Corn stalks", "Vegetable waste"];
 
@@ -14,8 +15,10 @@ export function CreateListingForm({ farmerId }: { farmerId: string }) {
   const [message, setMessage] = useState("");
   const [detectedType, setDetectedType] = useState("");
   const [busy, setBusy] = useState(false);
+  const [modelBusy, setModelBusy] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modelPrediction, setModelPrediction] = useState<ModelLotPrediction | null>(null);
 
   const imagePreview = useMemo(() => {
     if (!selectedFile) return "";
@@ -33,6 +36,7 @@ export function CreateListingForm({ farmerId }: { farmerId: string }) {
     }
 
     setSelectedFile(file);
+    setModelPrediction(null);
     setMessage("");
     setIsModalOpen(true);
   }
@@ -50,6 +54,61 @@ export function CreateListingForm({ farmerId }: { farmerId: string }) {
     if (!busy) {
       setIsModalOpen(false);
       setDetectedType("");
+      setModelPrediction(null);
+    }
+  }
+
+  async function analyzeWithModels(form: HTMLFormElement) {
+    if (!selectedFile) return;
+    setModelBusy(true);
+    setMessage("");
+
+    try {
+      const formData = new FormData(form);
+      const title = String(formData.get("title") ?? "");
+      const biomassType = String(formData.get("biomass_type") ?? "Olive residues");
+      const location = String(formData.get("location") ?? "Sfax");
+      const quantityKg = Number(formData.get("quantity_kg") || 0);
+      const moistureLevel = Number(formData.get("moisture_level") || 0) || undefined;
+
+      const prediction = await predictLotWithModelApi({
+        file: selectedFile,
+        location,
+        biomassType,
+        quantityKg,
+        moistureLevel,
+      });
+      setModelPrediction(prediction);
+
+      const mappedType = visualClassToMarketplaceType(prediction.image?.biomass_type);
+      const localType = classifyBiomassFromText(title);
+      const suggestedType = biomassTypes.includes(localType) ? localType : mappedType;
+      const typeSelect = form.elements.namedItem("biomass_type") as HTMLSelectElement | null;
+      if (typeSelect && suggestedType && biomassTypes.includes(suggestedType)) {
+        typeSelect.value = suggestedType;
+        setDetectedType(`${suggestedType} (${prediction.image?.biomass_type ?? "vision model"})`);
+      }
+
+      const dryMatterFraction = prediction.image?.quality?.dry_matter_fraction;
+      const moistureInput = form.elements.namedItem("moisture_level") as HTMLInputElement | null;
+      if (moistureInput && !moistureInput.value && dryMatterFraction) {
+        moistureInput.value = String(Math.round(Math.max(0, Math.min(100, 100 - dryMatterFraction * 100))));
+      }
+
+      const qualityInput = form.elements.namedItem("quality_score") as HTMLInputElement | null;
+      if (qualityInput && !qualityInput.value && dryMatterFraction) {
+        qualityInput.value = String(Math.round(Math.max(0, Math.min(100, dryMatterFraction * 100))));
+      }
+
+      const priceInput = form.elements.namedItem("price_per_kg") as HTMLInputElement | null;
+      const modelPrice = modelPriceToTndPerKg(prediction);
+      if (priceInput && !priceInput.value && modelPrice) {
+        priceInput.value = String(modelPrice);
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Model API unavailable. Local prediction will be used on publish.");
+    } finally {
+      setModelBusy(false);
     }
   }
 
@@ -79,7 +138,23 @@ export function CreateListingForm({ farmerId }: { farmerId: string }) {
       }
 
       const imageUrl = await uploadBiomassImage(selectedFile, farmerId);
-      const prediction = predictBiomassPrice({
+      let apiPrediction = modelPrediction;
+      if (!apiPrediction) {
+        try {
+          apiPrediction = await predictLotWithModelApi({
+            file: selectedFile,
+            location: parsed.data.location,
+            biomassType: parsed.data.biomass_type,
+            quantityKg: parsed.data.quantity_kg,
+            moistureLevel: parsed.data.moisture_level,
+          });
+          setModelPrediction(apiPrediction);
+        } catch {
+          apiPrediction = null;
+        }
+      }
+
+      const localPrediction = predictBiomassPrice({
         biomassType: parsed.data.biomass_type,
         quantityKg: parsed.data.quantity_kg,
         location: parsed.data.location,
@@ -88,7 +163,12 @@ export function CreateListingForm({ farmerId }: { farmerId: string }) {
         demandLevel: parsed.data.demandLevel,
         distanceKm: parsed.data.distanceKm,
       });
-      const carbonSaved = calculateCarbonSaved(parsed.data.quantity_kg, parsed.data.biomass_type);
+      const modelPrice = modelPriceToTndPerKg(apiPrediction ?? undefined);
+      const modelMoisture =
+        apiPrediction?.image?.quality?.dry_matter_fraction ? Math.round(100 - apiPrediction.image.quality.dry_matter_fraction * 100) : undefined;
+      const modelQuality =
+        apiPrediction?.image?.quality?.dry_matter_fraction ? Math.round(apiPrediction.image.quality.dry_matter_fraction * 100) : undefined;
+      const carbonSaved = apiPrediction?.carbon?.total_co2_eq_kg ?? calculateCarbonSaved(parsed.data.quantity_kg, parsed.data.biomass_type);
       const riskReduction = calculateHealthRiskReduction(parsed.data.quantity_kg, 65);
       const batchHash = await createBatchHash({ farmer_id: farmerId, biomass_type: parsed.data.biomass_type, quantity_kg: parsed.data.quantity_kg });
 
@@ -99,10 +179,10 @@ export function CreateListingForm({ farmerId }: { farmerId: string }) {
         description: parsed.data.description,
         quantity_kg: parsed.data.quantity_kg,
         price_per_kg: parsed.data.price_per_kg,
-        predicted_price_per_kg: prediction.predictedPricePerKg,
+        predicted_price_per_kg: modelPrice ?? localPrediction.predictedPricePerKg,
         location: parsed.data.location,
-        moisture_level: parsed.data.moisture_level,
-        quality_score: parsed.data.quality_score,
+        moisture_level: parsed.data.moisture_level ?? modelMoisture,
+        quality_score: parsed.data.quality_score ?? modelQuality,
         image_url: imageUrl,
         carbon_saved_kg: carbonSaved,
         health_risk_reduction_score: riskReduction,
@@ -125,6 +205,7 @@ export function CreateListingForm({ farmerId }: { farmerId: string }) {
       setMessage("Listing created with AI prediction and blockchain trace.");
       setSelectedFile(null);
       setDetectedType("");
+      setModelPrediction(null);
       setIsModalOpen(false);
       event.currentTarget.reset();
     } catch (error) {
@@ -213,14 +294,37 @@ export function CreateListingForm({ farmerId }: { farmerId: string }) {
                 <input type="hidden" name="distanceKm" value="40" />
 
                 <div className="flex flex-wrap gap-3 border-t border-slate-100 pt-4">
+                  <button type="button" onClick={(event) => analyzeWithModels(event.currentTarget.form!)} className="inline-flex items-center gap-2 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60" disabled={modelBusy}>
+                    <ScanSearch size={16} /> {modelBusy ? "Analyzing..." : "Analyze with models"}
+                  </button>
                   <button type="button" onClick={(event) => detectTypeFromForm(event.currentTarget.form!)} className="inline-flex items-center gap-2 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50">
-                    <ScanSearch size={16} /> Detect type
+                    Local fallback
                   </button>
                   <button disabled={busy} className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60">
                     <UploadCloud size={16} /> {busy ? "Publishing..." : "Publish lot"}
                   </button>
                 </div>
                 {detectedType ? <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-900">Detected local AI type: {detectedType}</p> : null}
+                {modelPrediction ? (
+                  <div className="grid gap-3 rounded-md bg-sky-50 p-3 text-sm text-sky-950 md:grid-cols-2">
+                    <div>
+                      <p className="font-medium">Vision model</p>
+                      <p>{modelPrediction.image?.biomass_type ?? "unknown"} · {Math.round((modelPrediction.image?.confidence ?? 0) * 100)}% confidence</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">Quality regressor</p>
+                      <p>Dry matter {Math.round((modelPrediction.image?.quality?.dry_matter_fraction ?? 0) * 100)}% · dry total {modelPrediction.image?.quality?.dry_total?.toFixed(1) ?? "-"}</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">Price model</p>
+                      <p>{modelPriceToTndPerKg(modelPrediction)?.toFixed(2) ?? "-"} TND/kg signal · raw {modelPrediction.price?.predicted_price?.toFixed(3) ?? "-"} {modelPrediction.price?.target_column ?? ""}</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">Carbon engine</p>
+                      <p>{modelPrediction.carbon?.total_co2_eq_kg?.toFixed(1) ?? "-"} kg CO2e avoided</p>
+                    </div>
+                  </div>
+                ) : null}
                 {message ? <p className="rounded-md bg-slate-50 p-3 text-sm text-slate-600">{message}</p> : null}
               </form>
             </div>

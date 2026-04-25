@@ -43,9 +43,27 @@ PUBLIC_SUPABASE_URL=
 PUBLIC_SUPABASE_ANON_KEY=
 OPENAI_API_KEY=
 PUBLIC_APP_URL=http://localhost:4321
+PUBLIC_MODEL_API_URL=http://127.0.0.1:8000
 ```
 
 Only `PUBLIC_SUPABASE_URL` and `PUBLIC_SUPABASE_ANON_KEY` are used in browser code. Never expose a service role key or `OPENAI_API_KEY` client-side.
+
+## Model API
+
+The farmer upload modal can call the trained model API in `modeles/`:
+
+```bash
+npm run models:dev
+```
+
+The frontend calls `POST /predict/lot` through `PUBLIC_MODEL_API_URL`. That endpoint uses:
+
+- `biomass_type_classifier.pt` for image classification
+- `biomass_quality_regressor.pt` for dry matter and quality signals
+- `price_model.pt` for market price prediction
+- `carbon_calculator.py` / API carbon output for avoided open-burning emissions
+
+If the model API is offline, the UI falls back to the local demo prediction engine.
 
 ## Supabase Setup
 
