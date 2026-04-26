@@ -5,9 +5,10 @@ import Card from "@/components/common/Card"
 import EmptyState from "@/components/common/EmptyState"
 import LoadingState from "@/components/common/LoadingState"
 import StatCard from "@/components/common/StatCard"
+import CreateListingForm from "@/components/marketplace/CreateListingForm"
 import { getCurrentProfile } from "@/lib/auth"
 import type { BiomassListing, Profile } from "@/lib/database.types"
-import { getAvailableListings, getListingsByFarmer } from "@/lib/listings"
+import { getListingsByFarmer } from "@/lib/listings"
 
 export function ListingsOverview() {
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -20,10 +21,11 @@ export function ListingsOverview() {
       const currentProfile = await getCurrentProfile()
       if (!currentProfile) throw new Error("Login required.")
 
-      const nextListings =
-        currentProfile.role === "farmer" || currentProfile.role === "admin"
-          ? await getListingsByFarmer(currentProfile.id)
-          : await getAvailableListings()
+      if (currentProfile.role !== "farmer" && currentProfile.role !== "admin") {
+        throw new Error("Farmer listing access required.")
+      }
+
+      const nextListings = await getListingsByFarmer(currentProfile.id)
 
       setProfile(currentProfile)
       setListings(nextListings)
@@ -48,6 +50,12 @@ export function ListingsOverview() {
 
   return (
     <div className="space-y-6">
+      {profile.role === "farmer" ? (
+        <div id="create-listing">
+          <CreateListingForm farmerId={profile.id} />
+        </div>
+      ) : null}
+
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard title="Listing Count" value={listings.length} icon={<Store size={20} />} />
         <StatCard title="Available Lots" value={availableCount} icon={<Boxes size={20} />} />

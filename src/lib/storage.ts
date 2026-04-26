@@ -1,8 +1,15 @@
 import { nanoid } from "nanoid";
-import { supabase } from "./supabaseClient";
+import { assertSupabaseConfig, supabase } from "./supabaseClient";
 import { validateImageFile } from "./validators";
 
-export async function uploadBiomassImage(file: File, userId: string): Promise<string> {
+export type UploadedBiomassImage = {
+  publicUrl: string;
+  storagePath: string;
+};
+
+export async function uploadBiomassImage(file: File, userId: string): Promise<UploadedBiomassImage> {
+  assertSupabaseConfig();
+
   const validationError = validateImageFile(file);
   if (validationError) throw new Error(validationError);
 
@@ -10,11 +17,15 @@ export async function uploadBiomassImage(file: File, userId: string): Promise<st
   const path = `${userId}/${nanoid(12)}.${extension}`;
   const { error } = await supabase.storage.from("biomass-images").upload(path, file, {
     cacheControl: "3600",
+    contentType: file.type,
     upsert: false,
   });
 
   if (error) throw error;
 
   const { data } = supabase.storage.from("biomass-images").getPublicUrl(path);
-  return data.publicUrl;
+  return {
+    publicUrl: data.publicUrl,
+    storagePath: path,
+  };
 }

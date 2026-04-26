@@ -131,7 +131,7 @@ export function CreateListingForm({ farmerId }: { farmerId: string }) {
         return;
       }
 
-      const imageUrl = await uploadBiomassImage(selectedFile, farmerId);
+      const uploadedImage = await uploadBiomassImage(selectedFile, farmerId);
       let apiPrediction = modelPrediction;
       if (!apiPrediction) {
         try {
@@ -177,7 +177,7 @@ export function CreateListingForm({ farmerId }: { farmerId: string }) {
         location: parsed.data.location,
         moisture_level: parsed.data.moisture_level ?? modelMoisture,
         quality_score: parsed.data.quality_score ?? modelQuality,
-        image_url: imageUrl,
+        image_url: uploadedImage.publicUrl,
         carbon_saved_kg: carbonSaved,
         health_risk_reduction_score: riskReduction,
         blockchain_batch_hash: batchHash,
@@ -188,15 +188,27 @@ export function CreateListingForm({ farmerId }: { farmerId: string }) {
         entityId: listing.id,
         action: "batch_created",
         actorId: farmerId,
-        payload: { biomass_type: listing.biomass_type, quantity_kg: listing.quantity_kg, carbon_saved_kg: carbonSaved },
+        payload: {
+          biomass_type: listing.biomass_type,
+          quantity_kg: listing.quantity_kg,
+          carbon_saved_kg: carbonSaved,
+          image_storage_path: uploadedImage.storagePath,
+        },
       });
-      await logSecurityEvent({ userId: farmerId, eventType: "listing_created", details: { listing_id: listing.id } });
+      await logSecurityEvent({
+        userId: farmerId,
+        eventType: "listing_created",
+        details: {
+          listing_id: listing.id,
+          image_storage_path: uploadedImage.storagePath,
+        },
+      });
 
       for (const alert of detectListingAnomaly(listing)) {
         await logSecurityEvent({ userId: farmerId, eventType: alert.eventType, severity: alert.severity, details: { reason: alert.reason, listing_id: listing.id } });
       }
 
-      setMessage("Listing created with AI prediction and blockchain trace.");
+      setMessage("Listing created with Supabase image, AI prediction, and blockchain trace.");
       setSelectedFile(null);
       setDetectedType("");
       setModelPrediction(null);

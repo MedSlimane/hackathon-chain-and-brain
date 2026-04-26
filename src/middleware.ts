@@ -16,9 +16,12 @@ const protectedRoutes: ProtectedRoute[] = [
   { prefix: "/dashboard/farmer", roles: ["farmer", "admin"] },
   { prefix: "/dashboard/industry", roles: ["industry", "admin"] },
   { prefix: "/dashboard/health", roles: ["health_actor", "admin"] },
-  { prefix: "/listings", roles: ["farmer", "industry", "health_actor", "admin"] },
+  { prefix: "/dashboard/health-risk", roles: ["health_actor", "admin"] },
+  { prefix: "/dashboard/scan-dechets", roles: ["health_actor", "admin"] },
+  { prefix: "/listings", roles: ["farmer", "admin"] },
+  { prefix: "/marketplace", roles: ["industry", "admin"] },
   { prefix: "/transactions", roles: ["farmer", "industry", "admin"] },
-  { prefix: "/analytics", roles: ["farmer", "industry", "health_actor", "admin"] },
+  { prefix: "/analytics", roles: ["farmer", "industry", "admin"] },
   { prefix: "/settings", roles: ["farmer", "industry", "health_actor", "admin"] },
 ];
 

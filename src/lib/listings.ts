@@ -36,3 +36,9 @@ export async function getListingsForCurrentUser() {
   if (error) throw error;
   return data as BiomassListing[];
 }
+
+export async function getListingsForHealthScan() {
+  const { data, error } = await supabase.from("biomass_listings").select("*").order("created_at", { ascending: false });
+  if (error) throw error;
+  return data as BiomassListing[];
+}

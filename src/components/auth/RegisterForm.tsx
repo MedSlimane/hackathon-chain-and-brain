@@ -2,6 +2,12 @@ import { useState } from "react"
 import { dashboardPathForRole, signUp } from "@/lib/auth"
 import { registerSchema } from "@/lib/validators"
 
+const roleOptions = [
+  { value: "farmer", label: "Farmer" },
+  { value: "industry", label: "Industry buyer" },
+  { value: "health_actor", label: "Health organization" },
+] as const
+
 export function RegisterForm() {
   const [message, setMessage] = useState("")
   const [busy, setBusy] = useState(false)
@@ -47,20 +53,13 @@ export function RegisterForm() {
   }
 
   return (
-    <div className="w-full rounded-[2rem] border border-white/70 bg-white/90 p-7 shadow-[0_32px_90px_-38px_rgba(15,23,42,0.32)] backdrop-blur-xl sm:p-8">
-      <div className="mb-8 text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.32em] text-emerald-700">
-          AgriConnect Smart
-        </p>
-        <h1 className="mt-4 text-3xl font-semibold tracking-[-0.03em] text-slate-950">
-          Create your account
-        </h1>
-        <p className="mt-3 text-sm leading-6 text-slate-500">
-          Join the platform with a clean, secure registration flow.
-        </p>
-      </div>
+    <div className="w-full max-w-sm">
+      <h1 className="mb-2 text-xl font-semibold tracking-[-0.01em] text-slate-950">Create your account</h1>
+      <p className="mb-6 text-xs font-light tracking-[0.01em] text-slate-500">
+        Join the biomass network with the right workspace.
+      </p>
 
-      <form onSubmit={handleRegister} className="space-y-5">
+      <form onSubmit={handleRegister} className="space-y-6">
         <div>
           <label
             htmlFor="full_name"
@@ -71,10 +70,31 @@ export function RegisterForm() {
           <input
             id="full_name"
             name="full_name"
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 focus:outline-none"
+            className="w-full rounded-md border border-slate-300 px-3 py-3 text-sm font-light text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             placeholder="John Doe"
             required
           />
+        </div>
+        <div>
+          <label
+            htmlFor="role"
+            className="mb-2 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500"
+          >
+            Role
+          </label>
+          <select
+            id="role"
+            name="role"
+            className="w-full rounded-md border border-slate-300 bg-white px-3 py-3 text-sm font-light text-slate-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            defaultValue="farmer"
+            required
+          >
+            {roleOptions.map((role) => (
+              <option key={role.value} value={role.value}>
+                {role.label}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label
@@ -87,7 +107,7 @@ export function RegisterForm() {
             id="email"
             name="email"
             type="email"
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 focus:outline-none"
+            className="w-full rounded-md border border-slate-300 px-3 py-3 text-sm font-light text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             placeholder="you@example.com"
             required
           />
@@ -103,7 +123,7 @@ export function RegisterForm() {
             id="password"
             name="password"
             type="password"
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 focus:outline-none"
+            className="w-full rounded-md border border-slate-300 px-3 py-3 text-sm font-light text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             placeholder="••••••••"
             required
           />
@@ -119,10 +139,10 @@ export function RegisterForm() {
             id="password_confirm"
             name="password_confirm"
             type="password"
-            className={`w-full rounded-2xl border bg-slate-50 px-4 py-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-4 focus:outline-none ${
+            className={`w-full rounded-md border px-3 py-3 text-sm font-light text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:outline-none ${
               passwordError
-                ? "border-red-500 focus:border-red-500 focus:ring-red-100"
-                : "border-slate-200 focus:border-emerald-500 focus:ring-emerald-100"
+                ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                : "border-slate-300 focus:border-emerald-500 focus:ring-emerald-500"
             }`}
             placeholder="••••••••"
             required
@@ -132,20 +152,19 @@ export function RegisterForm() {
           ) : null}
         </div>
 
-        <input type="hidden" name="role" value="farmer" />
         <input type="hidden" name="location" value="Tunisia" />
 
         <button
           disabled={busy}
-          className="w-full rounded-2xl bg-emerald-600 px-4 py-3.5 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-60"
+          className="w-full rounded-md bg-emerald-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-60"
         >
           {busy ? "Creating account..." : "Create account"}
         </button>
       </form>
 
-      {message ? <p className="mt-5 text-sm text-red-600">{message}</p> : null}
+      {message ? <p className="mt-6 text-sm font-light text-red-600">{message}</p> : null}
 
-      <p className="mt-7 text-center text-sm text-slate-500">
+      <p className="mt-8 text-center text-xs font-light tracking-[0.01em] text-slate-500">
         Already have an account?{" "}
         <a
           href="/login"

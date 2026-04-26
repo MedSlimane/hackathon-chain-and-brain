@@ -15,6 +15,12 @@ export async function createTransaction(data: {
   return created as BiomassTransaction;
 }
 
+export async function updateTransaction(id: string, data: Partial<BiomassTransaction>) {
+  const { data: updated, error } = await supabase.from("biomass_transactions").update(data).eq("id", id).select().single();
+  if (error) throw error;
+  return updated as BiomassTransaction;
+}
+
 export async function getTransactionsForUser(userId: string, role: UserRole) {
   const column = role === "farmer" ? "farmer_id" : "industry_id";
   const { data, error } = await supabase.from("biomass_transactions").select("*").eq(column, userId).order("created_at", { ascending: false });

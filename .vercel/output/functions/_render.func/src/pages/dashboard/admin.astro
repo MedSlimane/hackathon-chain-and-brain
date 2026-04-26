@@ -1,0 +1,8 @@
+---
+import AdminDashboardData from "@/components/dashboards/AdminDashboardData";
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+---
+
+<DashboardLayout title="Admin and security dashboard" subtitle="Review platform activity, anomaly logs, blockchain records, and AI prediction history." role="admin">
+  <AdminDashboardData client:load />
+</DashboardLayout>

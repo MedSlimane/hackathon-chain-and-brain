@@ -1,261 +1,327 @@
-import { useMemo, useState, type ChangeEvent, type FormEvent } from "react"
+import { useEffect, useMemo, useState, type SyntheticEvent } from "react";
+import { ImageOff, Leaf, MapPin, ScanSearch, Store } from "lucide-react";
+import Badge from "@/components/common/Badge";
+import EmptyState from "@/components/common/EmptyState";
+import LoadingState from "@/components/common/LoadingState";
+import StatCard from "@/components/common/StatCard";
+import { getCurrentProfile } from "@/lib/auth";
+import type { BiomassListing, Profile } from "@/lib/database.types";
+import { getListingsForHealthScan } from "@/lib/listings";
 import {
   calculateCarbonSaved,
-  classifyBiomassFromText,
+  calculateHealthRiskReduction,
+  generateRecommendation,
   predictBiomassPrice,
-} from "@/lib/predictions"
+} from "@/lib/predictions";
+import { logSecurityEvent } from "@/lib/security";
 
 interface ScanResult {
-  biomassType: string
-  estimatedPricePerKg: number
-  estimatedTotalPrice: number
-  carbonSavedKg: number
-  recommendation: string
+  listingId: string;
+  biomassType: string;
+  estimatedPricePerKg: number;
+  estimatedTotalPrice: number;
+  carbonSavedKg: number;
+  healthRiskReduction: number;
+  confidence: number;
+  recommendation: string;
 }
 
 function formatMoney(value: number) {
-  return value.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })
+  return value.toLocaleString("fr-FR", { style: "currency", currency: "TND" });
+}
+
+function statusVariant(status: BiomassListing["status"]): "success" | "warning" | "neutral" {
+  if (status === "available") return "success";
+  if (status === "reserved") return "warning";
+  return "neutral";
 }
 
 export default function ScanDechetsDashboard() {
-  const [description, setDescription] = useState("")
-  const [quantity, setQuantity] = useState("100")
-  const [location, setLocation] = useState("Farm site")
-  const [moisture, setMoisture] = useState("18")
-  const [photoName, setPhotoName] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<ScanResult | null>(null)
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [listings, setListings] = useState<BiomassListing[]>([]);
+  const [selectedListingId, setSelectedListingId] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [scanBusy, setScanBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState<ScanResult | null>(null);
 
-  const biomassType = useMemo(
-    () => classifyBiomassFromText(description),
-    [description]
-  )
-  const quantityKg = Number(quantity) || 0
-  const moistureLevel = Number(moisture) || 0
+  useEffect(() => {
+    async function load() {
+      const currentProfile = await getCurrentProfile();
+      if (!currentProfile) throw new Error("Login required.");
+      if (currentProfile.role !== "health_actor" && currentProfile.role !== "admin") {
+        throw new Error("Health actor access required.");
+      }
 
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-    setPhotoName(file?.name ?? "")
-  }
+      const existingListings = await getListingsForHealthScan();
+      setProfile(currentProfile);
+      setListings(existingListings);
+      setSelectedListingId(existingListings[0]?.id ?? "");
+    }
 
-  function handleScan(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setLoading(true)
+    load()
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "Unable to load farmer listings.")
+      )
+      .finally(() => setLoading(false));
+  }, []);
+
+  const selectedListing = useMemo(
+    () => listings.find((listing) => listing.id === selectedListingId) ?? listings[0] ?? null,
+    [listings, selectedListingId]
+  );
+
+  const totals = useMemo(
+    () => ({
+      quantity: listings.reduce((sum, listing) => sum + listing.quantity_kg, 0),
+      withImages: listings.filter((listing) => Boolean(listing.image_url)).length,
+      available: listings.filter((listing) => listing.status === "available").length,
+    }),
+    [listings]
+  );
+
+  async function handleScan(event: SyntheticEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedListing || !profile) return;
+
+    setScanBusy(true);
     const prediction = predictBiomassPrice({
-      biomassType,
-      quantityKg,
-      location,
+      biomassType: selectedListing.biomass_type,
+      quantityKg: selectedListing.quantity_kg,
+      location: selectedListing.location,
       demandLevel: "medium",
-      qualityScore: 72,
-      moistureLevel,
+      qualityScore: selectedListing.quality_score,
+      moistureLevel: selectedListing.moisture_level,
       distanceKm: 30,
-    })
+    });
+
+    try {
+      await logSecurityEvent({
+        userId: profile.id,
+        eventType: "health_listing_scanned",
+        details: {
+          listing_id: selectedListing.id,
+          biomass_type: selectedListing.biomass_type,
+          has_supabase_image: Boolean(selectedListing.image_url),
+        },
+      });
+    } catch {
+      // The scan itself should still work if logging is blocked by policy or network.
+    }
 
     window.setTimeout(() => {
+      const carbonSaved =
+        selectedListing.carbon_saved_kg ||
+        calculateCarbonSaved(selectedListing.quantity_kg, selectedListing.biomass_type);
+      const healthRiskReduction =
+        selectedListing.health_risk_reduction_score ||
+        calculateHealthRiskReduction(selectedListing.quantity_kg, 65);
+
       setResult({
-        biomassType,
+        listingId: selectedListing.id,
+        biomassType: selectedListing.biomass_type,
         estimatedPricePerKg: prediction.predictedPricePerKg,
-        estimatedTotalPrice: prediction.predictedPricePerKg * quantityKg,
-        carbonSavedKg: calculateCarbonSaved(quantityKg, biomassType),
-        recommendation:
-          moistureLevel > 30
-            ? "Dry the biomass further before sale to improve value."
-            : "This waste stream is ready for reuse or composting. Share it with local buyers.",
-      })
-      setLoading(false)
-    }, 600)
+        estimatedTotalPrice: prediction.predictedPricePerKg * selectedListing.quantity_kg,
+        carbonSavedKg: carbonSaved,
+        healthRiskReduction,
+        confidence: prediction.confidence,
+        recommendation: generateRecommendation({
+          ...selectedListing,
+          demandLevel: "medium",
+        }),
+      });
+      setScanBusy(false);
+    }, 350);
+  }
+
+  if (loading) return <LoadingState label="Loading farmer listings" />;
+  if (error) return <EmptyState title="Waste scan unavailable" description={error} />;
+  if (!listings.length) {
+    return (
+      <EmptyState
+        title="No farmer listings to scan"
+        description="Healthcare users scan existing farmer lots after farmers publish them."
+      />
+    );
   }
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-semibold tracking-[0.35em] text-emerald-700 uppercase">
-              Scan déchets
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-700">
+              Scan dechets
             </p>
-            <h2 className="mt-3 text-2xl font-semibold text-slate-950">
-              Détectez, classez et valorisez vos déchets agricoles.
+            <h2 className="mt-2 text-xl font-semibold text-slate-950">
+              Scan existing farmer listings.
             </h2>
-            <p className="mt-2 max-w-2xl text-sm text-slate-600">
-              Utilisez cette interface pour analyser un lot de déchets, estimer
-              sa valeur et obtenir une recommandation de valorisation.
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+              Healthcare users do not create lots here. Select a farmer listing already stored
+              in Supabase, review its image and data, then run the environmental scan.
             </p>
           </div>
-          <div className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-            <p className="font-medium">Rapide et pratique</p>
-            <p className="mt-1">
-              Chargez une photo ou décrivez le lot, puis cliquez sur Scanner.
-            </p>
+          <div className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+            <p className="font-medium">Read-only healthcare scan</p>
+            <p className="mt-1">No listing upload or creation from this page.</p>
           </div>
         </div>
       </section>
 
-      <form
-        onSubmit={handleScan}
-        className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]"
-      >
-        <div className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block">
-              <span className="text-sm font-medium text-slate-700">
-                Description du lot
-              </span>
-              <input
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                placeholder="Fanes de blé, paille, résidus de palmiers..."
-                className="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:border-emerald-400 focus:outline-none"
-              />
+      <div className="grid gap-4 md:grid-cols-3">
+        <StatCard title="Farmer lots" value={listings.length} icon={<Store size={20} />} />
+        <StatCard title="Available lots" value={totals.available} icon={<ScanSearch size={20} />} />
+        <StatCard
+          title="Stored images"
+          value={`${totals.withImages}/${listings.length}`}
+          icon={<Leaf size={20} />}
+          description={`${totals.quantity.toLocaleString()} kg listed across scanned lots.`}
+        />
+      </div>
+
+      <form onSubmit={handleScan} className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <div>
+            <label className="text-sm font-medium text-slate-700" htmlFor="listing-select">
+              Farmer listing
             </label>
-            <label className="block">
-              <span className="text-sm font-medium text-slate-700">
-                Quantité (kg)
-              </span>
-              <input
-                value={quantity}
-                onChange={(event) => setQuantity(event.target.value)}
-                type="number"
-                min="0"
-                className="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:border-emerald-400 focus:outline-none"
-              />
-            </label>
+            <select
+              id="listing-select"
+              value={selectedListing?.id ?? ""}
+              onChange={(event) => {
+                setSelectedListingId(event.target.value);
+                setResult(null);
+              }}
+              className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+            >
+              {listings.map((listing) => (
+                <option key={listing.id} value={listing.id}>
+                  {listing.title} - {listing.location}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block">
-              <span className="text-sm font-medium text-slate-700">
-                Localisation
-              </span>
-              <input
-                value={location}
-                onChange={(event) => setLocation(event.target.value)}
-                className="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:border-emerald-400 focus:outline-none"
-              />
-            </label>
-            <label className="block">
-              <span className="text-sm font-medium text-slate-700">
-                Teneur en humidité (%)
-              </span>
-              <input
-                value={moisture}
-                onChange={(event) => setMoisture(event.target.value)}
-                type="number"
-                min="0"
-                max="100"
-                className="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:border-emerald-400 focus:outline-none"
-              />
-            </label>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block">
-              <span className="text-sm font-medium text-slate-700">
-                Photo du lot
-              </span>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-900 file:rounded-md file:border-0 file:bg-emerald-100 file:px-3 file:py-2 file:text-slate-700"
-              />
-              {photoName ? (
-                <p className="mt-2 text-xs text-slate-500">
-                  Fichier : {photoName}
-                </p>
-              ) : null}
-            </label>
-            <div className="flex items-end justify-between rounded-2xl bg-slate-50 p-4">
-              <div>
-                <p className="text-xs tracking-[0.3em] text-slate-500 uppercase">
-                  Type détecté
-                </p>
-                <p className="mt-2 text-lg font-semibold text-slate-950">
-                  {biomassType}
-                </p>
-              </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="inline-flex items-center justify-center rounded-xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-slate-300"
-              >
-                {loading ? "Analyse en cours..." : "Scanner"}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-xs font-semibold tracking-[0.3em] text-slate-500 uppercase">
-              Résultats
-            </p>
-            {result ? (
-              <div className="mt-5 space-y-5">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-2xl bg-slate-50 p-4">
-                    <p className="text-xs tracking-[0.3em] text-slate-500 uppercase">
-                      Type estimé
+          {selectedListing ? (
+            <div className="overflow-hidden rounded-lg border border-slate-200">
+              {selectedListing.image_url ? (
+                <img
+                  src={selectedListing.image_url}
+                  alt={selectedListing.title}
+                  className="h-64 w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-64 flex-col items-center justify-center bg-slate-50 text-slate-500">
+                  <ImageOff size={28} />
+                  <p className="mt-2 text-sm">No Supabase image linked to this listing.</p>
+                </div>
+              )}
+              <div className="space-y-4 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-950">
+                      {selectedListing.title}
                     </p>
-                    <p className="mt-2 text-sm font-semibold text-slate-950">
-                      {result.biomassType}
+                    <p className="mt-1 text-sm text-slate-500">
+                      {selectedListing.biomass_type}
                     </p>
                   </div>
-                  <div className="rounded-2xl bg-slate-50 p-4">
-                    <p className="text-xs tracking-[0.3em] text-slate-500 uppercase">
-                      Prix estimé /kg
+                  <Badge variant={statusVariant(selectedListing.status)}>
+                    {selectedListing.status}
+                  </Badge>
+                </div>
+                <div className="grid gap-3 text-sm sm:grid-cols-2">
+                  <span>{selectedListing.quantity_kg.toLocaleString()} kg</span>
+                  <span>{selectedListing.price_per_kg.toFixed(2)} TND/kg</span>
+                  <span>Quality {selectedListing.quality_score ?? "N/A"}</span>
+                  <span>Moisture {selectedListing.moisture_level ?? "N/A"}%</span>
+                </div>
+                <p className="flex items-center gap-1 text-sm text-slate-600">
+                  <MapPin size={15} /> {selectedListing.location}
+                </p>
+                <button
+                  type="submit"
+                  disabled={scanBusy}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+                >
+                  <ScanSearch size={16} />
+                  {scanBusy ? "Scanning..." : "Scan selected listing"}
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="space-y-4">
+          <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+              Scan result
+            </p>
+            {result ? (
+              <div className="mt-5 space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="rounded-lg bg-slate-50 p-4">
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                      Type
                     </p>
-                    <p className="mt-2 text-sm font-semibold text-slate-950">
-                      {formatMoney(result.estimatedPricePerKg)}
+                    <p className="mt-2 font-semibold text-slate-950">{result.biomassType}</p>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 p-4">
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                      Confidence
+                    </p>
+                    <p className="mt-2 font-semibold text-slate-950">
+                      {Math.round(result.confidence * 100)}%
                     </p>
                   </div>
                 </div>
-                <div className="rounded-2xl bg-slate-50 p-4">
-                  <p className="text-xs tracking-[0.3em] text-slate-500 uppercase">
-                    Prix total estimé
+                <div className="rounded-lg bg-slate-50 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                    Estimated value
                   </p>
                   <p className="mt-2 text-xl font-semibold text-slate-950">
                     {formatMoney(result.estimatedTotalPrice)}
                   </p>
-                </div>
-                <div className="rounded-2xl bg-slate-50 p-4">
-                  <p className="text-xs tracking-[0.3em] text-slate-500 uppercase">
-                    Impact carbone évité
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-slate-950">
-                    {result.carbonSavedKg.toLocaleString()} kg CO₂
+                  <p className="mt-1 text-sm text-slate-500">
+                    {formatMoney(result.estimatedPricePerKg)} / kg
                   </p>
                 </div>
-                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-                  <p className="text-xs tracking-[0.3em] text-emerald-700 uppercase">
-                    Recommandation
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="rounded-lg bg-slate-50 p-4">
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                      CO2e avoided
+                    </p>
+                    <p className="mt-2 font-semibold text-slate-950">
+                      {result.carbonSavedKg.toLocaleString()} kg
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 p-4">
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                      Health risk reduction
+                    </p>
+                    <p className="mt-2 font-semibold text-slate-950">
+                      {result.healthRiskReduction}/100
+                    </p>
+                  </div>
+                </div>
+                <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-emerald-700">
+                    Recommendation
                   </p>
-                  <p className="mt-2 text-sm font-medium text-emerald-900">
+                  <p className="mt-2 text-sm font-medium leading-6 text-emerald-900">
                     {result.recommendation}
                   </p>
                 </div>
               </div>
             ) : (
               <p className="mt-5 text-sm leading-6 text-slate-600">
-                Entrez les détails du lot de déchets, chargez une image
-                (facultatif) et cliquez sur Scanner pour obtenir une estimation
-                instantanée.
+                Select one of the existing farmer listings and scan it. This page reads
+                stored Supabase listing data and images only.
               </p>
             )}
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-xs tracking-[0.3em] text-slate-500 uppercase">
-              Autres actions
-            </p>
-            <ul className="mt-4 space-y-3 text-sm text-slate-600">
-              <li>Voir les offres de marché pour valoriser le lot.</li>
-              <li>Enregistrer une nouvelle annonce de biomasse.</li>
-              <li>Comparer les prix selon le type de déchets.</li>
-            </ul>
           </div>
         </div>
       </form>
     </div>
-  )
+  );
 }

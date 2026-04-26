@@ -1,0 +1,8 @@
+---
+import FarmerDashboardData from "@/components/dashboards/FarmerDashboardData";
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+---
+
+<DashboardLayout title="Farmer dashboard" subtitle="Create biomass listings and track revenue, carbon, and AI recommendations." role="farmer">
+  <FarmerDashboardData client:load />
+</DashboardLayout>

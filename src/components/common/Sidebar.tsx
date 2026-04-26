@@ -1,12 +1,16 @@
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   BarChart3,
-  ChevronLeft,
-  ChevronRight,
+  HeartPulse,
   LayoutDashboard,
+  PackagePlus,
+  PackageSearch,
+  PanelLeftClose,
+  PanelLeftOpen,
   ReceiptText,
+  ScanSearch,
   Settings,
-  Store,
+  ShoppingCart,
   X,
 } from "lucide-react"
 import { dashboardPathForRole } from "@/lib/auth"
@@ -14,25 +18,63 @@ import type { UserRole } from "@/lib/database.types"
 import { cn } from "@/lib/utils"
 
 export function Sidebar({ role = "admin" }: { role?: UserRole }) {
-  const [collapsed, setCollapsed] = useState(false)
+  const [isHovered, setIsHovered] = useState(false)
+  const [isPinnedOpen, setIsPinnedOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [pathname, setPathname] = useState("")
+  const [pathname, setPathname] = useState(() =>
+    typeof window === "undefined" ? "" : window.location.pathname
+  )
+  const isSidebarOpen = isHovered || isPinnedOpen
 
   const links = useMemo(
-    () => [
-      { href: dashboardPathForRole(role), label: "Dashboard", icon: LayoutDashboard },
-      { href: "/listings", label: "My Listings", icon: Store },
-      { href: "/transactions", label: "Transactions", icon: ReceiptText },
-      { href: "/analytics", label: "Analytics", icon: BarChart3 },
-      { href: "/settings", label: "Settings", icon: Settings },
-    ],
+    () => {
+      const navigationLinks = [
+        { href: dashboardPathForRole(role), label: "Dashboard", icon: LayoutDashboard },
+      ]
+
+      if (role === "farmer" || role === "admin") {
+        navigationLinks.push({
+          href: "/listings",
+          label: "My Listings",
+          icon: PackageSearch,
+        }, {
+          href: "/listings#create-listing",
+          label: "New Listing",
+          icon: PackagePlus,
+        })
+      }
+
+      if (role === "industry" || role === "admin") {
+        navigationLinks.push({
+          href: "/marketplace",
+          label: "Marketplace",
+          icon: ShoppingCart,
+        })
+      }
+
+      if (role === "health_actor" || role === "admin") {
+        navigationLinks.push(
+          { href: "/dashboard/health-risk", label: "Risk map", icon: HeartPulse },
+          { href: "/dashboard/scan-dechets", label: "Waste scan", icon: ScanSearch }
+        )
+      }
+
+      if (role !== "health_actor") {
+        navigationLinks.push({ href: "/transactions", label: "Transactions", icon: ReceiptText })
+      }
+
+      if (role !== "health_actor") {
+        navigationLinks.push({ href: "/analytics", label: "Analytics", icon: BarChart3 })
+      }
+
+      navigationLinks.push({ href: "/settings", label: "Settings", icon: Settings })
+
+      return navigationLinks
+    },
     [role]
   )
 
   useEffect(() => {
-    setPathname(window.location.pathname)
-    setCollapsed(window.localStorage.getItem("agriconnect-sidebar-collapsed") === "true")
-
     function syncPathname() {
       setPathname(window.location.pathname)
       setMobileOpen(false)
@@ -54,45 +96,84 @@ export function Sidebar({ role = "admin" }: { role?: UserRole }) {
     }
   }, [])
 
-  useEffect(() => {
-    window.localStorage.setItem("agriconnect-sidebar-collapsed", String(collapsed))
-  }, [collapsed])
+  const handleMouseEnter = useCallback(() => {
+    setIsHovered((currentIsHovered) => {
+      if (currentIsHovered) {
+        return currentIsHovered
+      }
+
+      return true
+    })
+  }, [])
+
+  const handleMouseLeave = useCallback(() => {
+    if (isPinnedOpen) {
+      return
+    }
+
+    setIsHovered((currentIsHovered) => {
+      if (!currentIsHovered) {
+        return currentIsHovered
+      }
+
+      return false
+    })
+  }, [isPinnedOpen])
+
+  const togglePinnedOpen = useCallback(() => {
+    setIsPinnedOpen((currentIsPinnedOpen) => {
+      const nextIsPinnedOpen = !currentIsPinnedOpen
+
+      if (!nextIsPinnedOpen) {
+        setIsHovered(false)
+      }
+
+      return nextIsPinnedOpen
+    })
+  }, [])
 
   function isActive(href: string) {
     return pathname === href || pathname.startsWith(`${href}/`)
   }
 
   function renderNavigation(isMobile = false) {
+    const open = isMobile || isSidebarOpen
+    const CollapseIcon = isPinnedOpen ? PanelLeftClose : PanelLeftOpen
+    const collapseLabel = isPinnedOpen
+      ? "Collapse"
+      : open
+        ? "Lock open"
+        : "Expand"
+
     return (
       <aside
         className={cn(
-          "flex h-full flex-col border-r border-slate-200/70 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.98))] px-4 py-5 transition-all duration-300",
-          collapsed && !isMobile ? "w-[5.5rem]" : "w-72"
+          "relative z-50 flex h-full flex-col border-r border-slate-200/70 bg-white px-3 py-4 transition-[width,box-shadow] duration-300",
+          open ? "w-56 shadow-[18px_0_40px_-32px_rgba(15,23,42,0.45)]" : "w-16 shadow-none"
         )}
+        onMouseEnter={isMobile ? undefined : handleMouseEnter}
+        onMouseLeave={isMobile ? undefined : handleMouseLeave}
+        aria-expanded={open}
       >
         <div className="flex items-center justify-between gap-3">
           <a
             href="/"
             className={cn(
-              "flex min-w-0 items-center gap-3",
-              collapsed && !isMobile ? "justify-center" : ""
+              "flex h-9 min-w-0 items-center gap-2 text-slate-950",
+              open ? "" : "justify-center"
             )}
+            title={open ? undefined : "AgriConnect Smart"}
           >
-            <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-[0_18px_30px_-18px_rgba(5,150,105,0.9)]">
-              <LayoutDashboard size={20} />
-            </span>
+            <LayoutDashboard size={20} className="shrink-0 text-emerald-700" />
             <span
               className={cn(
                 "min-w-0 transition-all duration-200",
-                collapsed && !isMobile
+                !open
                   ? "pointer-events-none w-0 overflow-hidden opacity-0"
                   : "opacity-100"
               )}
             >
-              <span className="block truncate text-sm font-semibold uppercase tracking-[0.24em] text-emerald-700">
-                Workspace
-              </span>
-              <span className="block truncate text-lg font-semibold tracking-[-0.02em] text-slate-950">
+              <span className="block truncate text-sm font-semibold tracking-[-0.01em] text-slate-950">
                 AgriConnect Smart
               </span>
             </span>
@@ -102,22 +183,16 @@ export function Sidebar({ role = "admin" }: { role?: UserRole }) {
             <button
               type="button"
               onClick={() => setMobileOpen(false)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 lg:hidden"
+              className="inline-flex h-8 w-8 items-center justify-center text-slate-600 hover:text-slate-950 lg:hidden"
             >
               <X size={18} />
             </button>
           ) : (
-            <button
-              type="button"
-              onClick={() => setCollapsed((value) => !value)}
-              className="hidden h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-emerald-200 hover:text-emerald-700 lg:inline-flex"
-            >
-              {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-            </button>
+            null
           )}
         </div>
 
-        <nav className="mt-8 space-y-2">
+        <nav className="mt-6 space-y-1">
           {links.map((link) => {
             const Icon = link.icon
             const active = isActive(link.href)
@@ -127,28 +202,19 @@ export function Sidebar({ role = "admin" }: { role?: UserRole }) {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "group flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition-all duration-200",
+                  "group flex h-9 items-center gap-3 border-l-2 px-2 text-sm font-medium transition-all duration-200",
                   active
-                    ? "bg-emerald-600 text-white shadow-[0_18px_30px_-18px_rgba(5,150,105,0.85)]"
-                    : "text-slate-600 hover:bg-emerald-50 hover:text-emerald-700",
-                  collapsed && !isMobile ? "justify-center px-0" : ""
+                    ? "border-emerald-600 text-emerald-700"
+                    : "border-transparent text-slate-600 hover:text-emerald-700",
+                  open ? "" : "justify-center px-0"
                 )}
-                title={collapsed && !isMobile ? link.label : undefined}
+                title={open ? undefined : link.label}
               >
-                <span
-                  className={cn(
-                    "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition",
-                    active
-                      ? "bg-white/15 text-white"
-                      : "bg-white text-slate-500 ring-1 ring-slate-200 group-hover:text-emerald-700"
-                  )}
-                >
-                  <Icon size={18} />
-                </span>
+                <Icon size={17} className="shrink-0" />
                 <span
                   className={cn(
                     "truncate transition-all duration-200",
-                    collapsed && !isMobile
+                    !open
                       ? "pointer-events-none w-0 overflow-hidden opacity-0"
                       : "opacity-100"
                   )}
@@ -162,29 +228,62 @@ export function Sidebar({ role = "admin" }: { role?: UserRole }) {
 
         <div
           className={cn(
-            "mt-auto rounded-3xl border border-emerald-100 bg-emerald-50/90 p-4 transition-all duration-200",
-            collapsed && !isMobile ? "px-2 py-4" : ""
+            "mt-auto border-t border-slate-200 pt-4 transition-all duration-200",
+            open ? "" : "px-0"
           )}
         >
           <p
             className={cn(
-              "text-xs font-semibold uppercase tracking-[0.24em] text-emerald-700",
-              collapsed && !isMobile ? "text-center" : ""
+              "text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700",
+              open ? "" : "text-center"
             )}
           >
-            {collapsed && !isMobile ? "AI" : "Smart Ops"}
+            {open ? "Smart Ops" : "AI"}
           </p>
-          <p className={cn("mt-2 text-sm leading-6 text-emerald-900", collapsed && !isMobile ? "hidden" : "block")}>
-            Listings, traceability, and transaction data in one clean workspace.
+          <p className={cn("mt-2 text-xs leading-5 text-slate-500", open ? "block" : "hidden")}>
+            Listings, deals, and traceability in one workflow.
           </p>
         </div>
+
+        {!isMobile ? (
+          <button
+            type="button"
+            onClick={togglePinnedOpen}
+            className={cn(
+              "mt-3 inline-flex h-9 items-center text-sm font-medium text-slate-600 transition hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
+              open ? "justify-start gap-3 px-2" : "justify-center px-0"
+            )}
+            aria-label={
+              isPinnedOpen
+                ? "Collapse sidebar"
+                : open
+                  ? "Lock sidebar open"
+                  : "Expand sidebar"
+            }
+            aria-pressed={isPinnedOpen}
+            aria-expanded={open}
+            title={collapseLabel}
+          >
+            <CollapseIcon size={18} className="shrink-0" />
+            <span
+              className={cn(
+                "truncate transition-all duration-200",
+                open ? "opacity-100" : "pointer-events-none w-0 overflow-hidden opacity-0"
+              )}
+            >
+              {collapseLabel}
+            </span>
+          </button>
+        ) : null}
       </aside>
     )
   }
 
   return (
     <>
-      <div className="hidden lg:block">{renderNavigation()}</div>
+      <div className="relative z-50 hidden w-16 min-w-16 max-w-16 flex-none overflow-visible lg:block">
+        {renderNavigation()}
+      </div>
 
       <div
         className={cn(

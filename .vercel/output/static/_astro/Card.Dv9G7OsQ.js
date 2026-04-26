@@ -1,0 +1,1 @@
+import{j as s}from"./jsx-runtime.D_zvdyIk.js";import{c as a}from"./utils.BQHNewu7.js";function p({children:r,className:o}){return s.jsx("section",{className:a("rounded-3xl border border-slate-200/80 bg-white/95 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)] backdrop-blur-sm",o),children:r})}export{p as C};

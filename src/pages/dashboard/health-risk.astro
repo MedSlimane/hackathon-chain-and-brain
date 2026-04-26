@@ -1,0 +1,8 @@
+---
+import HealthRiskData from "@/components/dashboards/HealthRiskData";
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+---
+
+<DashboardLayout title="Risk map" subtitle="Prioritize regions using aggregated pollution, health, and waste-burning signals." role="health_actor">
+  <HealthRiskData client:load />
+</DashboardLayout>

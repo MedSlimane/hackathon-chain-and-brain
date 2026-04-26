@@ -13,8 +13,12 @@ export async function createPollutionReport(data: {
   burned_waste_estimate_kg: number;
   respiratory_risk_score: number;
   notes?: string;
-}) {
-  const { data: created, error } = await supabase.from("pollution_reports").insert(data).select().single();
+}, reporterId?: string) {
+  const payload = {
+    ...data,
+    reporter_id: reporterId ?? null,
+  };
+  const { data: created, error } = await supabase.from("pollution_reports").insert(payload).select().single();
   if (error) throw error;
   return created as PollutionReport;
 }

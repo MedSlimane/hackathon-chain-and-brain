@@ -55,7 +55,12 @@ with check (id = auth.uid() or app_private.is_admin());
 drop policy if exists "listings_read_available_or_owned_or_admin" on public.biomass_listings;
 create policy "listings_read_available_or_owned_or_admin"
 on public.biomass_listings for select to authenticated
-using (status = 'available'::public.listing_status or farmer_id = auth.uid() or app_private.is_admin());
+using (
+  status = 'available'::public.listing_status
+  or farmer_id = auth.uid()
+  or app_private.get_user_role() = 'health_actor'::public.user_role
+  or app_private.is_admin()
+);
 
 drop policy if exists "listings_insert_own_farmer" on public.biomass_listings;
 create policy "listings_insert_own_farmer"

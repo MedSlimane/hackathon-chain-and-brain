@@ -1,0 +1,8 @@
+---
+import IndustryDashboardData from "@/components/dashboards/IndustryDashboardData";
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+---
+
+<DashboardLayout title="Industry dashboard" subtitle="Source biomass, create purchase transactions, and track carbon impact." role="industry">
+  <IndustryDashboardData client:load />
+</DashboardLayout>

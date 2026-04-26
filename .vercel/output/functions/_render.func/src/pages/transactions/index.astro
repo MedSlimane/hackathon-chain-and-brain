@@ -1,0 +1,8 @@
+---
+import TransactionsOverview from "@/components/dashboard/TransactionsOverview";
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+---
+
+<DashboardLayout title="Transactions" subtitle="Track active and completed biomass deals across your workspace.">
+  <TransactionsOverview client:load />
+</DashboardLayout>
