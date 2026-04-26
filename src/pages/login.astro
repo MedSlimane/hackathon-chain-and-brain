@@ -1,10 +1,19 @@
 ---
 import LoginForm from "@/components/auth/LoginForm";
 import MainLayout from "@/layouts/MainLayout.astro";
+
+const reasonMessages: Record<string, string> = {
+  auth_required: "Please log in to continue.",
+  auth_callback_failed: "Email confirmation could not be completed. Try logging in, or request a new confirmation email.",
+  missing_profile: "Your account is signed in, but no profile was found.",
+  missing_config: "Supabase is not configured. Add your public Supabase URL and anon key.",
+};
+
+const initialMessage = reasonMessages[Astro.url.searchParams.get("reason") ?? ""] ?? "";
 ---
 
 <MainLayout title="Login | AgriConnect Smart">
   <main class="px-4 py-12 sm:px-6 lg:px-8">
-    <LoginForm client:load />
+    <LoginForm initialMessage={initialMessage} client:load />
   </main>
 </MainLayout>

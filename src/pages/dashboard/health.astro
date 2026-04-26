@@ -1,11 +1,8 @@
 ---
-import HealthDashboard from "@/components/dashboards/HealthDashboard";
+import HealthDashboardData from "@/components/dashboards/HealthDashboardData";
 import DashboardLayout from "@/layouts/DashboardLayout.astro";
-import { demoHealthIndicators, demoPollutionReports, demoProfiles } from "@/lib/sampleData";
-
-const healthActor = demoProfiles.find((profile) => profile.role === "health_actor")!;
 ---
 
 <DashboardLayout title="Health dashboard" subtitle="Monitor aggregated pollution, respiratory risk, and waste-burning reduction." role="health_actor">
-  <HealthDashboard reporterId={healthActor.id} reports={demoPollutionReports} indicators={demoHealthIndicators} client:only="react" />
+  <HealthDashboardData client:only="react" />
 </DashboardLayout>

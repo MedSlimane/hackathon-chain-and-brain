@@ -1,6 +1,5 @@
-import type { TransactionStatus, UserRole } from "./database.types";
-import { demoTransactions } from "./sampleData";
-import { supabase, hasSupabaseConfig } from "./supabaseClient";
+import type { BiomassTransaction, TransactionStatus, UserRole } from "./database.types";
+import { supabase } from "./supabaseClient";
 
 export async function createTransaction(data: {
   listing_id: string;
@@ -13,21 +12,30 @@ export async function createTransaction(data: {
 }) {
   const { data: created, error } = await supabase.from("biomass_transactions").insert(data).select().single();
   if (error) throw error;
-  return created;
+  return created as BiomassTransaction;
 }
 
 export async function getTransactionsForUser(userId: string, role: UserRole) {
-  if (!hasSupabaseConfig) {
-    return demoTransactions.filter((transaction) => role === "farmer" ? transaction.farmer_id === userId : transaction.industry_id === userId);
-  }
   const column = role === "farmer" ? "farmer_id" : "industry_id";
   const { data, error } = await supabase.from("biomass_transactions").select("*").eq(column, userId).order("created_at", { ascending: false });
   if (error) throw error;
-  return data;
+  return data as BiomassTransaction[];
 }
 
 export async function updateTransactionStatus(id: string, status: TransactionStatus) {
   const { data, error } = await supabase.from("biomass_transactions").update({ status }).eq("id", id).select().single();
   if (error) throw error;
-  return data;
+  return data as BiomassTransaction;
+}
+
+export async function getTransactionById(id: string) {
+  const { data, error } = await supabase.from("biomass_transactions").select("*").eq("id", id).single();
+  if (error) throw error;
+  return data as BiomassTransaction;
+}
+
+export async function getAllTransactions() {
+  const { data, error } = await supabase.from("biomass_transactions").select("*").order("created_at", { ascending: false });
+  if (error) throw error;
+  return data as BiomassTransaction[];
 }

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { dashboardPathForRole, signUp } from "@/lib/auth";
-import { hasSupabaseConfig } from "@/lib/supabaseClient";
 import { registerSchema } from "@/lib/validators";
 
 export function RegisterForm() {
@@ -20,12 +19,12 @@ export function RegisterForm() {
     }
 
     try {
-      if (!hasSupabaseConfig) {
-        setMessage("Demo mode: add Supabase env vars to create real users.");
+      const data = await signUp(parsed.data);
+      if (!data.session) {
+        setMessage("Account created. Check your email to confirm it. The confirmation link will bring you back to your dashboard.");
         return;
       }
 
-      await signUp(parsed.data);
       window.location.href = dashboardPathForRole(parsed.data.role);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to register.");

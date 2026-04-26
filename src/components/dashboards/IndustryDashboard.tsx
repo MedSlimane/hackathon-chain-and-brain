@@ -6,7 +6,6 @@ import type { BiomassListing, BiomassTransaction } from "@/lib/database.types";
 import { createTransactionHash } from "@/lib/blockchain";
 import { createTransaction } from "@/lib/transactions";
 import { logSecurityEvent, detectTransactionAnomaly } from "@/lib/security";
-import { hasSupabaseConfig } from "@/lib/supabaseClient";
 
 export function IndustryDashboard({ industryId, listings, transactions }: { industryId: string; listings: BiomassListing[]; transactions: BiomassTransaction[] }) {
   const [message, setMessage] = useState("");
@@ -20,10 +19,6 @@ export function IndustryDashboard({ industryId, listings, transactions }: { indu
 
   async function requestPurchase(listing: BiomassListing) {
     try {
-      if (!hasSupabaseConfig) {
-        setMessage("Demo mode: connect Supabase env vars to create real transactions.");
-        return;
-      }
       const draft = {
         listing_id: listing.id,
         farmer_id: listing.farmer_id,

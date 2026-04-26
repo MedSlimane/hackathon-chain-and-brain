@@ -1,9 +1,6 @@
 ---
-import MarketplaceView from "@/components/marketplace/MarketplaceView";
+import MarketplaceData from "@/components/marketplace/MarketplaceData";
 import MainLayout from "@/layouts/MainLayout.astro";
-import { demoListings } from "@/lib/sampleData";
-
-const listings = demoListings.filter((listing) => listing.status === "available");
 ---
 
 <MainLayout title="Marketplace | AgriConnect Smart">
@@ -13,6 +10,6 @@ const listings = demoListings.filter((listing) => listing.status === "available"
       <h1 class="mt-2 text-3xl font-semibold text-slate-950">Available agricultural waste</h1>
       <p class="mt-2 max-w-2xl text-slate-600">Search traceable biomass lots with AI price estimates, carbon impact, and regional context.</p>
     </div>
-    <MarketplaceView listings={listings} client:load />
+    <MarketplaceData client:load />
   </main>
 </MainLayout>

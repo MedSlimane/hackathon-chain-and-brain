@@ -4,7 +4,6 @@ import { createBatchHash, createBlockchainRecord } from "@/lib/blockchain";
 import { createListing } from "@/lib/listings";
 import { calculateCarbonSaved, calculateHealthRiskReduction, classifyBiomassFromText, predictBiomassPrice } from "@/lib/predictions";
 import { logSecurityEvent, detectListingAnomaly } from "@/lib/security";
-import { hasSupabaseConfig } from "@/lib/supabaseClient";
 import { uploadBiomassImage } from "@/lib/storage";
 import { listingSchema, validateImageFile } from "@/lib/validators";
 import { modelPriceToTndPerKg, predictLotWithModelApi, visualClassToMarketplaceType, type ModelLotPrediction } from "@/lib/modelApi";
@@ -129,11 +128,6 @@ export function CreateListingForm({ farmerId }: { farmerId: string }) {
     try {
       if (!selectedFile) {
         setMessage("Add a lot photo before publishing.");
-        return;
-      }
-
-      if (!hasSupabaseConfig) {
-        setMessage("Demo mode: connect Supabase env vars to create real listings.");
         return;
       }
 

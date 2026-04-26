@@ -1,19 +1,11 @@
 import { useState } from "react";
-import { dashboardPathForRole, signIn } from "@/lib/auth";
-import type { UserRole } from "@/lib/database.types";
+import { dashboardPathForRole, getSafeRedirectPath, signIn } from "@/lib/auth";
 import { logSecurityEvent } from "@/lib/security";
-import { supabase, hasSupabaseConfig } from "@/lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
 import { loginSchema } from "@/lib/validators";
 
-const demoAccounts: Array<{ label: string; email: string; role: UserRole }> = [
-  { label: "Farmer demo", email: "farmer@demo.test", role: "farmer" },
-  { label: "Industry demo", email: "industry@demo.test", role: "industry" },
-  { label: "Health demo", email: "health@demo.test", role: "health_actor" },
-  { label: "Admin demo", email: "admin@demo.test", role: "admin" },
-];
-
-export function LoginForm() {
-  const [message, setMessage] = useState("");
+export function LoginForm({ initialMessage = "" }: { initialMessage?: string }) {
+  const [message, setMessage] = useState(initialMessage);
   const [busy, setBusy] = useState(false);
 
   async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
@@ -29,15 +21,13 @@ export function LoginForm() {
     }
 
     try {
-      if (!hasSupabaseConfig) {
-        setMessage("Demo mode: use the dashboard links without authentication, or add Supabase env vars.");
-        return;
-      }
-
       const { user } = await signIn(parsed.data.email, parsed.data.password);
       const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-      await logSecurityEvent({ userId: user.id, eventType: "login", details: { email: parsed.data.email } });
-      window.location.href = dashboardPathForRole(profile?.role ?? "farmer");
+      void logSecurityEvent({ userId: user.id, eventType: "login", details: { email: parsed.data.email } }).catch(() => undefined);
+
+      const fallbackPath = dashboardPathForRole(profile?.role ?? "farmer");
+      const redirectTo = new URLSearchParams(window.location.search).get("redirectTo");
+      window.location.href = getSafeRedirectPath(redirectTo, fallbackPath);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to sign in.");
     } finally {
@@ -57,13 +47,7 @@ export function LoginForm() {
         </button>
       </form>
       {message ? <p className="mt-4 text-sm text-slate-600">{message}</p> : null}
-      <div className="mt-6 grid grid-cols-2 gap-2">
-        {demoAccounts.map((account) => (
-          <a key={account.role} href={dashboardPathForRole(account.role)} className="rounded-md border border-slate-200 px-3 py-2 text-center text-sm text-slate-700 hover:bg-slate-50">
-            {account.label}
-          </a>
-        ))}
-      </div>
+      <p className="mt-6 text-center text-sm text-slate-500">Use a seeded Supabase account or register a new user.</p>
     </div>
   );
 }

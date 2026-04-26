@@ -70,9 +70,15 @@ If the model API is offline, the UI falls back to the local demo prediction engi
 1. Create a Supabase project.
 2. Run `supabase/schema.sql` in the SQL editor.
 3. Run `supabase/policies.sql` in the SQL editor.
-4. Create demo users in Supabase Auth.
-5. Replace UUIDs in `supabase/seed.sql` with the created Auth user IDs if needed.
-6. Run `supabase/seed.sql`.
+4. Seed demo data from this app:
+
+```bash
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key npm run supabase:seed
+```
+
+The seed script creates demo Auth users, profiles, listings, transactions, health data, security logs, blockchain records, and AI prediction logs. A service role key is recommended because publishable keys trigger email confirmation and rate limits.
+
+If you run `supabase/seed.sql` manually in the SQL editor, create the demo users in Supabase Authentication first. The SQL seed maps those real Auth users by email before inserting `profiles`; fixed fake profile UUIDs will fail because `profiles.id` references `auth.users(id)`.
 
 The policies file also creates the public `biomass-images` bucket and Storage RLS policies. Upload paths must follow:
 
@@ -82,16 +88,14 @@ The policies file also creates the public `biomass-images` bucket and Storage RL
 
 ## Demo Users
 
-The seed file expects these roles:
+`npm run supabase:seed` creates these accounts with password `AgriConnectDemo2026!`:
 
-- Farmer: Amira Ben Salah
-- Farmer: Youssef Trabelsi
-- Industry: Sana Mejri
-- Industry: Karim Saidi
-- Health actor: Dr. Lina Haddad
-- Admin: Admin AgriConnect
-
-Use the login page demo buttons to navigate without a connected Supabase project.
+- `agriconnect.farmer1@gmail.com` - Farmer
+- `agriconnect.farmer2@gmail.com` - Farmer
+- `agriconnect.industry1@gmail.com` - Industry
+- `agriconnect.industry2@gmail.com` - Industry
+- `agriconnect.health@gmail.com` - Health actor
+- `agriconnect.admin@gmail.com` - Admin
 
 ## Architecture
 

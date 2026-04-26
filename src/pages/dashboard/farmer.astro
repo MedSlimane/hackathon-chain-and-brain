@@ -1,13 +1,8 @@
 ---
-import FarmerDashboard from "@/components/dashboards/FarmerDashboard";
+import FarmerDashboardData from "@/components/dashboards/FarmerDashboardData";
 import DashboardLayout from "@/layouts/DashboardLayout.astro";
-import { demoListings, demoProfiles, demoTransactions } from "@/lib/sampleData";
-
-const farmer = demoProfiles.find((profile) => profile.role === "farmer")!;
-const listings = demoListings.filter((listing) => listing.farmer_id === farmer.id);
-const transactions = demoTransactions.filter((transaction) => transaction.farmer_id === farmer.id);
 ---
 
 <DashboardLayout title="Farmer dashboard" subtitle="Create biomass listings and track revenue, carbon, and AI recommendations." role="farmer">
-  <FarmerDashboard farmerId={farmer.id} listings={listings} transactions={transactions} client:load />
+  <FarmerDashboardData client:load />
 </DashboardLayout>

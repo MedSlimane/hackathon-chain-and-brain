@@ -1,11 +1,10 @@
-import { demoHealthIndicators, demoPollutionReports } from "./sampleData";
-import { supabase, hasSupabaseConfig } from "./supabaseClient";
+import type { HealthIndicator, PollutionReport } from "./database.types";
+import { supabase } from "./supabaseClient";
 
 export async function getPollutionReports() {
-  if (!hasSupabaseConfig) return demoPollutionReports;
   const { data, error } = await supabase.from("pollution_reports").select("*").order("created_at", { ascending: false });
   if (error) throw error;
-  return data;
+  return data as PollutionReport[];
 }
 
 export async function createPollutionReport(data: {
@@ -17,12 +16,11 @@ export async function createPollutionReport(data: {
 }) {
   const { data: created, error } = await supabase.from("pollution_reports").insert(data).select().single();
   if (error) throw error;
-  return created;
+  return created as PollutionReport;
 }
 
 export async function getHealthIndicators() {
-  if (!hasSupabaseConfig) return demoHealthIndicators;
   const { data, error } = await supabase.from("health_indicators").select("*").order("created_at", { ascending: false });
   if (error) throw error;
-  return data;
+  return data as HealthIndicator[];
 }

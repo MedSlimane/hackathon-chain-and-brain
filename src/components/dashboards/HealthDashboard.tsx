@@ -6,13 +6,13 @@ import Badge from "@/components/common/Badge";
 import type { HealthIndicator, PollutionReport } from "@/lib/database.types";
 import { createPollutionReport } from "@/lib/health";
 import { logSecurityEvent } from "@/lib/security";
-import { hasSupabaseConfig } from "@/lib/supabaseClient";
 import { pollutionReportSchema } from "@/lib/validators";
 
 export function HealthDashboard({ reporterId, reports, indicators }: { reporterId: string; reports: PollutionReport[]; indicators: HealthIndicator[] }) {
   const [message, setMessage] = useState("");
-  const averagePollution = Math.round(reports.reduce((sum, report) => sum + report.pollution_level, 0) / reports.length);
-  const averageRisk = Math.round(reports.reduce((sum, report) => sum + (report.respiratory_risk_score ?? 0), 0) / reports.length);
+  const reportCount = Math.max(1, reports.length);
+  const averagePollution = Math.round(reports.reduce((sum, report) => sum + report.pollution_level, 0) / reportCount);
+  const averageRisk = Math.round(reports.reduce((sum, report) => sum + (report.respiratory_risk_score ?? 0), 0) / reportCount);
   const burnedWaste = reports.reduce((sum, report) => sum + report.burned_waste_estimate_kg, 0);
   const environmentScore = Math.max(0, 100 - averagePollution);
   const predictedRisk = Math.min(100, Math.round(averageRisk + burnedWaste / 50000));
@@ -26,10 +26,6 @@ export function HealthDashboard({ reporterId, reports, indicators }: { reporterI
       return;
     }
     try {
-      if (!hasSupabaseConfig) {
-        setMessage("Demo mode: connect Supabase env vars to insert reports.");
-        return;
-      }
       await createPollutionReport(parsed.data);
       await logSecurityEvent({ userId: reporterId, eventType: "pollution_report_created", details: { region: parsed.data.region } });
       setMessage("Aggregated pollution report saved.");

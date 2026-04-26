@@ -1,5 +1,6 @@
 ---
 import "@/styles/global.css";
+import AuthRedirectHandler from "@/components/auth/AuthRedirectHandler";
 import Navbar from "@/components/common/Navbar.astro";
 
 interface Props {
@@ -19,6 +20,7 @@ const { title = "AgriConnect Smart", description = "Secure biomass marketplace f
     <title>{title}</title>
   </head>
   <body class="min-h-screen bg-slate-50 text-slate-950">
+    <AuthRedirectHandler client:load />
     <Navbar />
     <slot />
   </body>
