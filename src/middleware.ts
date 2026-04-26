@@ -16,7 +16,10 @@ const protectedRoutes: ProtectedRoute[] = [
   { prefix: "/dashboard/farmer", roles: ["farmer", "admin"] },
   { prefix: "/dashboard/industry", roles: ["industry", "admin"] },
   { prefix: "/dashboard/health", roles: ["health_actor", "admin"] },
+  { prefix: "/listings", roles: ["farmer", "industry", "health_actor", "admin"] },
   { prefix: "/transactions", roles: ["farmer", "industry", "admin"] },
+  { prefix: "/analytics", roles: ["farmer", "industry", "health_actor", "admin"] },
+  { prefix: "/settings", roles: ["farmer", "industry", "health_actor", "admin"] },
 ];
 
 function matchesPrefix(pathname: string, prefix: string) {

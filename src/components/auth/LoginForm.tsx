@@ -53,15 +53,15 @@ export function LoginForm({
 
   return (
     <div className="w-full max-w-sm">
-      <h1 className="mb-2 text-2xl font-bold text-slate-950">Welcome back</h1>
-      <p className="mb-6 text-sm text-slate-600">
+      <h1 className="mb-2 text-xl font-semibold tracking-[-0.01em] text-slate-950">Welcome back</h1>
+      <p className="mb-6 text-xs font-light tracking-[0.01em] text-slate-500">
         Sign in to your biomass account.
       </p>
       <form onSubmit={handleLogin} className="space-y-6">
         <div>
           <label
             htmlFor="email"
-            className="mb-2 block text-sm font-medium text-slate-700"
+            className="mb-2 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500"
           >
             Email
           </label>
@@ -69,7 +69,7 @@ export function LoginForm({
             id="email"
             name="email"
             type="email"
-            className="w-full rounded-md border border-slate-300 px-3 py-3 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            className="w-full rounded-md border border-slate-300 px-3 py-3 text-sm font-light text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             placeholder="you@example.com"
             required
           />
@@ -77,7 +77,7 @@ export function LoginForm({
         <div>
           <label
             htmlFor="password"
-            className="mb-2 block text-sm font-medium text-slate-700"
+            className="mb-2 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500"
           >
             Password
           </label>
@@ -85,7 +85,7 @@ export function LoginForm({
             id="password"
             name="password"
             type="password"
-            className="w-full rounded-md border border-slate-300 px-3 py-3 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            className="w-full rounded-md border border-slate-300 px-3 py-3 text-sm font-light text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             placeholder="••••••••"
             required
           />
@@ -97,8 +97,8 @@ export function LoginForm({
           {busy ? "Signing in..." : "Sign in"}
         </button>
       </form>
-      {message ? <p className="mt-6 text-sm text-red-600">{message}</p> : null}
-      <p className="mt-8 text-center text-sm text-slate-500">
+      {message ? <p className="mt-6 text-sm font-light text-red-600">{message}</p> : null}
+      <p className="mt-8 text-center text-xs font-light tracking-[0.01em] text-slate-500">
         Don't have an account?{" "}
         <a
           href="/register"

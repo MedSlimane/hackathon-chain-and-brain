@@ -1,7 +1,7 @@
 ---
 import "@/styles/global.css";
+import Header from "@/components/common/Header";
 import Sidebar from "@/components/common/Sidebar";
-import ProfileSection from "@/components/auth/ProfileSection";
 import type { UserRole } from "@/lib/database.types";
 
 interface Props {
@@ -13,6 +13,31 @@ interface Props {
 const { title, subtitle, role = "admin" } = Astro.props;
 const sidebarRole = Astro.locals.profile?.role ?? role;
 const wasUnauthorized = Astro.url.searchParams.get("unauthorized") === "1";
+const headerUser = {
+  name: Astro.locals.profile?.full_name ?? "AgriConnect User",
+  email: Astro.locals.user?.email ?? null,
+  role: Astro.locals.profile?.role ?? role,
+};
+const notifications = [
+  {
+    id: "1",
+    title: "New biomass request",
+    description: "A buyer viewed your recent listing and requested more details.",
+    time: "Now",
+  },
+  {
+    id: "2",
+    title: "Traceability check completed",
+    description: "Your latest batch hash and integrity validation were stored successfully.",
+    time: "2h",
+  },
+  {
+    id: "3",
+    title: "Carbon impact updated",
+    description: "Your latest transactions improved this month's sustainability score.",
+    time: "Today",
+  },
+];
 ---
 
 <html lang="en">
@@ -26,26 +51,23 @@ const wasUnauthorized = Astro.url.searchParams.get("unauthorized") === "1";
     <div class="flex min-h-screen">
       <Sidebar role={sidebarRole} client:load />
       <main class="min-w-0 flex-1">
-        <div class="border-b border-slate-200 bg-white px-4 py-4 sm:px-6 lg:px-8">
-          <div class="mx-auto max-w-7xl">
-            <a href="/" class="text-sm font-medium text-emerald-700 lg:hidden">AgriConnect Smart</a>
-            <h1 class="mt-1 text-2xl font-semibold text-slate-950">{title}</h1>
-            {subtitle ? <p class="mt-1 text-sm text-slate-500">{subtitle}</p> : null}
-          </div>
-        </div>
+        <Header
+          title={title}
+          subtitle={subtitle}
+          user={headerUser}
+          notifications={notifications}
+          client:load
+        />
         <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           {
             wasUnauthorized ? (
-              <div class="mb-5 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <div class="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                 You were redirected because your account is not allowed to access that area.
               </div>
             ) : null
           }
-          <div class="mb-6 grid gap-6 xl:grid-cols-[minmax(280px,_360px)_1fr]">
-            <ProfileSection client:load />
-            <div class="space-y-6">
-              <slot />
-            </div>
+          <div class="space-y-6">
+            <slot />
           </div>
         </div>
       </main>

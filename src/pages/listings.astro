@@ -1,0 +1,8 @@
+---
+import ListingsOverview from "@/components/dashboard/ListingsOverview";
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+---
+
+<DashboardLayout title="My Listings" subtitle="Manage biomass inventory, lot status, and carbon impact from one place.">
+  <ListingsOverview client:load />
+</DashboardLayout>

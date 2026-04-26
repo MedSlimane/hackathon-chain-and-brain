@@ -1,21 +1,12 @@
 ---
 import RegisterForm from "@/components/auth/RegisterForm";
-import AgricultureBackground from "@/components/auth/AgricultureBackground";
 import AuthLayout from "@/layouts/AuthLayout.astro";
 ---
 
 <AuthLayout title="Register | AgriConnect Smart">
-  <main class="flex min-h-screen">
-    <div class="relative flex-1 overflow-hidden rounded-r-[3rem]">
-      <AgricultureBackground client:load />
-      <div class="absolute inset-0 flex items-center justify-center">
-        <div class="text-center text-white">
-          <h1 class="text-4xl font-bold mb-4">AgriConnect Smart</h1>
-          <p class="text-lg">Secure biomass marketplace</p>
-        </div>
-      </div>
-    </div>
-    <div class="flex-1 flex items-center justify-center bg-white p-6">
+  <main class="relative flex min-h-screen items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.14),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(148,163,184,0.16),transparent_28%),linear-gradient(180deg,#f8fafc,#eef6f2)] px-6 py-10">
+    <div class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.35)_1px,transparent_1px)] bg-[size:72px_72px] opacity-35"></div>
+    <div class="relative w-full max-w-md">
       <RegisterForm client:load />
     </div>
   </main>

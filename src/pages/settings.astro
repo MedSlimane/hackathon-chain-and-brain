@@ -1,0 +1,8 @@
+---
+import SettingsOverview from "@/components/dashboard/SettingsOverview";
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+---
+
+<DashboardLayout title="Settings" subtitle="Manage account details, preferences, and security controls.">
+  <SettingsOverview client:load />
+</DashboardLayout>
