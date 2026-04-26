@@ -1,0 +1,8 @@
+---
+import ScanDechetsDashboard from "@/components/dashboards/ScanDechetsDashboard";
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+---
+
+<DashboardLayout title="Scan déchets" subtitle="Analysez un lot de déchets agricoles et estimez sa valeur de valorisation." role="admin">
+  <ScanDechetsDashboard client:load />
+</DashboardLayout>

@@ -1,0 +1,25 @@
+---
+import "@/styles/global.css";
+import AuthRedirectHandler from "@/components/auth/AuthRedirectHandler";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title = "AgriConnect Smart", description = "Secure biomass marketplace for farmers, industries, and health actors." } = Astro.props;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title}</title>
+  </head>
+  <body class="min-h-screen bg-slate-50 text-slate-950">
+    <AuthRedirectHandler client:load />
+    <slot />
+  </body>
+</html>

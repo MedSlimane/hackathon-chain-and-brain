@@ -1,6 +1,7 @@
 ---
 import LoginForm from "@/components/auth/LoginForm";
-import MainLayout from "@/layouts/MainLayout.astro";
+import AgricultureBackground from "@/components/auth/AgricultureBackground";
+import AuthLayout from "@/layouts/AuthLayout.astro";
 
 const reasonMessages: Record<string, string> = {
   auth_required: "Please log in to continue.",
@@ -12,8 +13,25 @@ const reasonMessages: Record<string, string> = {
 const initialMessage = reasonMessages[Astro.url.searchParams.get("reason") ?? ""] ?? "";
 ---
 
-<MainLayout title="Login | AgriConnect Smart">
-  <main class="px-4 py-12 sm:px-6 lg:px-8">
-    <LoginForm initialMessage={initialMessage} client:load />
+<AuthLayout title="Login | AgriConnect Smart">
+  <main class="flex min-h-screen">
+    <div class="relative flex-1 overflow-hidden rounded-r-[3rem]">
+      <AgricultureBackground client:load />
+      <div class="absolute inset-0 flex flex-col justify-between p-10 text-white">
+        <div class="max-w-xs">
+          <span class="text-xs uppercase tracking-[0.3em] text-slate-200/80">AgriConnect Smart</span>
+        </div>
+        <div class="max-w-xl">
+          <h1 class="text-5xl font-bold leading-tight drop-shadow-xl">Modernisez la trace et la vente du biomasse.</h1>
+          <p class="mt-6 text-lg text-slate-100/80">Une plateforme sécurisée pour producteurs, industries et acteurs santé, avec visibilité et confiance de bout en bout.</p>
+        </div>
+        <div class="max-w-xs text-sm text-slate-200/70">
+          Built for smarter operations and tailored supply chain confidence.
+        </div>
+      </div>
+    </div>
+    <div class="flex-1 flex items-center justify-center bg-white p-6">
+      <LoginForm initialMessage={initialMessage} client:load />
+    </div>
   </main>
-</MainLayout>
+</AuthLayout>
